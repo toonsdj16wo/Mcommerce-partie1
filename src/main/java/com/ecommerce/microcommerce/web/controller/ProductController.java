@@ -2,6 +2,7 @@ package com.ecommerce.microcommerce.web.controller;
 
 import com.ecommerce.microcommerce.dao.ProductDao;
 import com.ecommerce.microcommerce.model.Product;
+import com.ecommerce.microcommerce.web.exceptions.ProduitGratuitException;
 import com.ecommerce.microcommerce.web.exceptions.ProduitIntrouvableException;
 import com.fasterxml.jackson.databind.ser.FilterProvider;
 import com.fasterxml.jackson.databind.ser.impl.SimpleBeanPropertyFilter;
@@ -16,7 +17,9 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import javax.validation.Valid;
 import java.net.URI;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 
 @Api( description="API pour es opérations CRUD sur les produits.")
@@ -67,8 +70,11 @@ public class ProductController {
     //ajouter un produit
     @PostMapping(value = "/Produits")
 
-    public ResponseEntity<Void> ajouterProduit(@Valid @RequestBody Product product) {
+    public ResponseEntity<Void> ajouterProduit( @RequestBody Product product) {
 
+        if (product.getPrix() <= 0){
+            throw new ProduitGratuitException("Le prix du produit : " + product.getNom() + " est gratuit");
+        }
         Product productAdded =  productDao.save(product);
 
         if (productAdded == null)
@@ -86,7 +92,6 @@ public class ProductController {
     @DeleteMapping (value = "/Produits/{id}")
     public void supprimerProduit(@PathVariable int id) {
 
-        productDao.delete(id);
     }
 
     @PutMapping (value = "/Produits")
@@ -101,6 +106,23 @@ public class ProductController {
     public List<Product>  testeDeRequetes(@PathVariable int prix) {
 
         return productDao.chercherUnProduitCher(400);
+    }
+
+    @GetMapping(value ="/AdminProduits")
+    public Map calculerMargeProduit (){
+
+        Iterable<Product> products =  productDao.findAll();
+        Map<Product,Integer> productMap = new HashMap<>();
+        for(Product product : products){
+            productMap.put(product, product.getPrix() - product.getPrixAchat());
+        }
+
+        return productMap;
+    }
+
+    @GetMapping(value = "/TriProduits")
+    public List<Product>  trieraProduitsParOrdreAlphabetique() {
+        return productDao.findAllByOrderByNomAsc();
     }
 
 
